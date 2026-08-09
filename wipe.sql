@@ -1,0 +1,15 @@
+DROP TABLE IF EXISTS llm_usage;
+DROP TABLE IF EXISTS runtime_cycles;
+DROP TABLE IF EXISTS runtime_state;
+DROP TABLE IF EXISTS distribution_events;
+DROP TABLE IF EXISTS publication_events;
+DROP TABLE IF EXISTS post_sources;
+DROP TABLE IF EXISTS memories;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS thesis_evidence;
+DROP TABLE IF EXISTS theses;
+DROP TABLE IF EXISTS editorial_decisions;
+DROP TABLE IF EXISTS candidate_sources;
+DROP TABLE IF EXISTS candidates;
+DROP TABLE IF EXISTS sources;
+DROP TABLE IF EXISTS agents;
