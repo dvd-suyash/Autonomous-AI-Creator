@@ -20,7 +20,7 @@ app.post('/internal/runtime/wake', async (c) => {
        return c.json({ error: 'Agent not initialized in database.' }, 400);
     }
 
-    await runAutonomousCycle(c.env.DB, agent.id, c.env.AI);
+    await runAutonomousCycle(c.env.DB, agent.id, c.env.AI, c.env);
     
     return c.json({ status: 'ok', agentWoken: agent.id });
   } catch (error) {
@@ -64,7 +64,7 @@ export default {
     const agent = await env.DB.prepare("SELECT id FROM agent LIMIT 1").first<{ id: string }>();
 
     if (agent) {
-      ctx.waitUntil(runAutonomousCycle(env.DB, agent.id, env.AI));
+      ctx.waitUntil(runAutonomousCycle(env.DB, agent.id, env.AI, env));
     }
   }
 }
