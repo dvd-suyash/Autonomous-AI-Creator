@@ -1,75 +1,195 @@
-// src/runtime/scheduler.ts
-import { discoverCandidates } from '../discovery'
-import { evaluateCandidates } from '../editorial'
-import { generateContent } from '../content'
-import { CloudflareAILLMProvider, MockLLMProvider, LLMProvider } from '../llm'
+import { CloudflareAILLMProvider } from '../llm';
+import { aggregateDailySignals } from '../discovery';
+import { clusterSignals, analyzeCluster } from '../analysis';
+import { generateContent, determineFormatPreference } from '../content';
+import { XClient } from '../x';
 
-export async function runAutonomousCycle(db: D1Database, agentId: string, ai: any) {
-  // Fetch agent details for persona injection
-  const agent = await db.prepare("SELECT * FROM agents WHERE id = ?").bind(agentId).first<{ id: string, name: string, domain: string }>();
-  if (!agent) return;
-
-  // 1. Check lock
-  const state = await db.prepare("SELECT state, locked_until FROM runtime_state WHERE agent_id = ?").bind(agentId).first<{ state: string, locked_until: string | null }>();
-  if (!state) return;
-  
-  const now = new Date();
-  if (state.locked_until && new Date(state.locked_until) > now) {
-    console.log(`Agent ${agentId} is currently locked until ${state.locked_until}`);
-    return;
-  }
-
-  // Set lock for 5 minutes
-  const lockedUntil = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
-  await db.prepare("UPDATE runtime_state SET state = 'RUNNING', locked_until = ?, updated_at = ? WHERE agent_id = ?")
-    .bind(lockedUntil, now.toISOString(), agentId).run();
-
+export async function runAutonomousCycle(db: D1Database, agentId: string, ai: any, env?: any) {
   const cycleId = crypto.randomUUID();
+  const startTime = Date.now();
+  const nowStr = new Date().toISOString();
+  
+  // Track metrics
+  let signalsDiscovered = 0;
+  let signalsNew = 0;
+  let clustersFormed = 0;
+  let outcome = 'ERROR';
+  let errorMsg = '';
+  
+  // Setup runtime log
+  const dayOfWeek = new Date().getDay();
+  const preferredFormat = determineFormatPreference(dayOfWeek);
+  
   await db.prepare(
-    "INSERT INTO runtime_cycles (id, agent_id, status, started_at) VALUES (?, ?, 'RUNNING', ?)"
-  ).bind(cycleId, agentId, now.toISOString()).run();
-
-  const llm = ai ? new CloudflareAILLMProvider(db, ai, agentId, cycleId) : new MockLLMProvider();
+    "INSERT INTO runtime_cycles (id, agent_id, started_at, day_of_week, format_preference) VALUES (?, ?, ?, ?, ?)"
+  ).bind(cycleId, agentId, nowStr, dayOfWeek.toString(), preferredFormat).run();
 
   try {
-    // 2. Discover Candidates (now returns stats)
-    console.log(`Starting discovery for agent ${agentId}`);
-    const discoveryStats = await discoverCandidates(db, agentId);
+    const llm = new CloudflareAILLMProvider(db, ai, agentId, cycleId);
 
-    // Store discovery stats in the cycle
-    await db.prepare("UPDATE runtime_cycles SET candidates_discovered = ?, metadata = ? WHERE id = ?")
-      .bind(discoveryStats.newInserted, JSON.stringify({ 
-        totalScanned: discoveryStats.totalScanned, 
-        newCandidates: discoveryStats.newInserted,
-        sources: discoveryStats.sourceBreakdown 
-      }), cycleId).run();
-
-    // 3. Editorial Evaluation
-    console.log(`Evaluating candidates for agent ${agentId}`);
-    const approvedCandidates = await evaluateCandidates(db, agent, llm, cycleId);
-
-    // 4. Content Generation and Publication
-    console.log(`Generating content for ${approvedCandidates.length} approved candidates`);
-    let publishedCount = 0;
-    for (const candidate of approvedCandidates) {
-      const published = await generateContent(db, agent, candidate, llm, cycleId);
-      if (published) publishedCount++;
+    // 1. GATHER (Curiosity + Search)
+    const rawSignals = await aggregateDailySignals(db, llm, env);
+    signalsDiscovered = rawSignals.length;
+    signalsNew = rawSignals.length;
+    
+    if (signalsNew > 0) {
+      // Save signals to DB
+      const stmt = db.prepare("INSERT INTO signals (id, source, title, summary, url, published_at, discovered_at, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+      const batch = rawSignals.map(s => stmt.bind(s.id, s.source, s.title, s.summary, s.url, s.publishedAt, nowStr, JSON.stringify(s.metadata)));
+      await db.batch(batch);
     }
 
-    // 5. Update State
-    const finishedAt = new Date().toISOString();
-    await db.prepare("UPDATE runtime_cycles SET status = 'COMPLETED', completed_at = ?, posts_published = ? WHERE id = ?")
-      .bind(finishedAt, publishedCount, cycleId).run();
-      
-    await db.prepare("UPDATE runtime_state SET state = 'IDLE', locked_until = NULL, last_successful_cycle_at = ?, updated_at = ? WHERE agent_id = ?")
-      .bind(finishedAt, finishedAt, agentId).run();
-      
-  } catch (error) {
-    console.error('Cycle Error:', error);
-    const failedAt = new Date().toISOString();
-    await db.prepare("UPDATE runtime_cycles SET status = 'FAILED', error_message = ?, completed_at = ? WHERE id = ?")
-      .bind(String(error), failedAt, cycleId).run();
-    await db.prepare("UPDATE runtime_state SET state = 'ERROR', locked_until = NULL, last_failed_cycle_at = ?, updated_at = ? WHERE agent_id = ?")
-      .bind(failedAt, failedAt, agentId).run();
+    if (signalsNew < 3) {
+      outcome = 'SKIPPED';
+      errorMsg = 'Insufficient new signals.';
+      await logSkip(db, cycleId, errorMsg);
+      await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+      return;
+    }
+
+    // 2. CLUSTER
+    const cluster = await clusterSignals(rawSignals, llm);
+    if (!cluster) {
+      outcome = 'SKIPPED';
+      errorMsg = 'Could not form significant clusters.';
+      await logSkip(db, cycleId, errorMsg);
+      await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+      return;
+    }
+    clustersFormed = 1;
+
+    // Save cluster to DB
+    await db.prepare(
+      "INSERT INTO signal_clusters (id, cycle_id, theme, signal_count, significance_score, selected, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)"
+    ).bind(cluster.id, cycleId, cluster.theme, cluster.signals.length, cluster.significance_score, nowStr).run();
+
+    // Link signals to cluster
+    const updateSigStmt = db.prepare("UPDATE signals SET cluster_id = ? WHERE id = ?");
+    await db.batch(cluster.signals.map(s => updateSigStmt.bind(cluster.id, s.id)));
+
+    if (cluster.significance_score < 0.6) {
+      outcome = 'SKIPPED';
+      errorMsg = 'Winning cluster significance score too low.';
+      await logSkip(db, cycleId, errorMsg, cluster.theme, cluster.significance_score);
+      await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+      return;
+    }
+
+    // 3. ANALYZE
+    const analysis = await analyzeCluster(cluster, llm);
+    if (!analysis) {
+      outcome = 'SKIPPED';
+      errorMsg = 'Analysis failed.';
+      await logSkip(db, cycleId, errorMsg);
+      await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+      return;
+    }
+
+    if (analysis.qualityScore < 0.7) {
+      outcome = 'SKIPPED';
+      errorMsg = 'Analysis quality score too low. Rejected by self-critique.';
+      await logSkip(db, cycleId, errorMsg, analysis.synthesis, analysis.qualityScore);
+      await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+      return;
+    }
+
+    // 4. CRAFT
+    const generated = await generateContent(analysis, preferredFormat, llm);
+    if (!generated) {
+      outcome = 'SKIPPED';
+      errorMsg = 'Content generation failed.';
+      await logSkip(db, cycleId, errorMsg);
+      await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+      return;
+    }
+
+    // 5. PUBLISH
+    const postId = crypto.randomUUID();
+    let xTweetId = null;
+    let xThreadIds = null;
+    let postedAt = null;
+
+    if (env && env.X_API_KEY) {
+      const xClient = new XClient({
+        apiKey: env.X_API_KEY,
+        apiSecret: env.X_API_SECRET,
+        accessToken: env.X_ACCESS_TOKEN,
+        accessTokenSecret: env.X_ACCESS_TOKEN_SECRET
+      });
+
+      try {
+        if (generated.format === 'thread' && Array.isArray(generated.content)) {
+          const ids = await xClient.postThread(generated.content);
+          if (ids.length > 0) {
+            xTweetId = ids[0];
+            xThreadIds = JSON.stringify(ids);
+            postedAt = new Date().toISOString();
+          }
+        } else if (typeof generated.content === 'string') {
+          const id = await xClient.postTweet(generated.content);
+          if (id) {
+            xTweetId = id;
+            postedAt = new Date().toISOString();
+          }
+        }
+      } catch (xErr) {
+        console.error('Failed to post to X:', xErr);
+        // We still save the post to the database even if X API fails
+      }
+    }
+
+    // Save Post to DB
+    await db.prepare(
+      `INSERT INTO posts (id, agent_id, cycle_id, format, content, contrarian_angle, incentive_insight, system_loop, sources_used, quality_score, x_tweet_id, x_thread_ids, created_at, posted_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      postId, agentId, cycleId, generated.format, 
+      JSON.stringify(generated.content), 
+      analysis.contrarianAngle, analysis.incentiveInsight, analysis.systemLoop, 
+      JSON.stringify(cluster.signals.map(s => s.id)),
+      analysis.qualityScore,
+      xTweetId, xThreadIds, nowStr, postedAt
+    ).run();
+
+    // Link signals to post
+    const linkSigStmt = db.prepare("UPDATE signals SET used_in_post = ? WHERE id = ?");
+    await db.batch(cluster.signals.map(s => linkSigStmt.bind(postId, s.id)));
+
+    // 6. REMEMBER
+    // Update total posts and last wake
+    await db.prepare("UPDATE agent SET total_posts = total_posts + 1, last_wake_at = ? WHERE id = ?").bind(nowStr, agentId).run();
+
+    outcome = 'PUBLISHED';
+    await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, '', generated.format);
+    
+  } catch (err: any) {
+    console.error('Cycle Error:', err);
+    outcome = 'ERROR';
+    errorMsg = err.message || String(err);
+    await finishCycle(db, cycleId, startTime, signalsDiscovered, signalsNew, clustersFormed, outcome, errorMsg);
+  }
+}
+
+async function logSkip(db: D1Database, cycleId: string, reason: string, bestContent?: string, bestScore?: number) {
+  const id = crypto.randomUUID();
+  await db.prepare(
+    "INSERT INTO skipped_cycles (id, cycle_id, reason, best_candidate_content, best_candidate_score, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+  ).bind(id, cycleId, reason, bestContent || null, bestScore || null, new Date().toISOString()).run();
+}
+
+async function finishCycle(
+  db: D1Database, cycleId: string, startTime: number,
+  disc: number, newSig: number, clus: number, outcome: string, errMsg: string, fmtUsed?: string
+) {
+  const duration = Date.now() - startTime;
+  const now = new Date().toISOString();
+  await db.prepare(
+    `UPDATE runtime_cycles 
+     SET completed_at = ?, duration_ms = ?, signals_discovered = ?, signals_new = ?, clusters_formed = ?, outcome = ?, error_message = ?, format_used = ?
+     WHERE id = ?`
+  ).bind(now, duration, disc, newSig, clus, outcome, errMsg || null, fmtUsed || null, cycleId).run();
+
+  if (outcome === 'SKIPPED') {
+    await db.prepare(`UPDATE agent SET total_skips = total_skips + 1 WHERE id = (SELECT agent_id FROM runtime_cycles WHERE id = ?)`).bind(cycleId).run();
   }
 }

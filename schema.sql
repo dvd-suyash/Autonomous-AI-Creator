@@ -1,195 +1,115 @@
-CREATE TABLE agents (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    domain TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'ACTIVE',
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
+DROP TABLE IF EXISTS knowledge_graph;
+DROP TABLE IF EXISTS llm_usage;
+DROP TABLE IF EXISTS runtime_cycles;
+DROP TABLE IF EXISTS skipped_cycles;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS signal_clusters;
+DROP TABLE IF EXISTS signals;
+DROP TABLE IF EXISTS agent;
+
+CREATE TABLE agent (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  persona_description TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  total_posts INTEGER DEFAULT 0,
+  total_skips INTEGER DEFAULT 0,
+  last_wake_at TEXT
 );
 
-CREATE TABLE sources (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    url TEXT NOT NULL,
-    canonical_url TEXT,
-    source_type TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'DISCOVERED',
-    discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    title TEXT,
-    author TEXT,
-    published_date TEXT,
-    content_hash TEXT,
-    raw_content TEXT,
-    metadata TEXT NOT NULL DEFAULT '{}',
-    UNIQUE(agent_id, url)
+CREATE TABLE signals (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT,
+  url TEXT NOT NULL,
+  published_at TEXT,
+  discovered_at TEXT NOT NULL,
+  cluster_id TEXT,
+  used_in_post TEXT,
+  metadata TEXT
 );
 
-CREATE TABLE candidates (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    title TEXT NOT NULL,
-    summary TEXT,
-    status TEXT NOT NULL DEFAULT 'PENDING',
-    discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TEXT,
-    metadata TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE candidate_sources (
-    candidate_id TEXT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
-    source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-    relationship TEXT NOT NULL,
-    PRIMARY KEY (candidate_id, source_id)
-);
-
-CREATE TABLE editorial_decisions (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    candidate_id TEXT NOT NULL REFERENCES candidates(id),
-    decision TEXT NOT NULL,
-    rationale TEXT NOT NULL,
-    score REAL,
-    confidence REAL,
-    model TEXT,
-    prompt_version TEXT,
-    decided_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE theses (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    title TEXT NOT NULL,
-    statement TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'ACTIVE',
-    confidence REAL,
-    first_observed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE thesis_evidence (
-    thesis_id TEXT NOT NULL REFERENCES theses(id) ON DELETE CASCADE,
-    source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-    relationship TEXT NOT NULL,
-    strength REAL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (thesis_id, source_id)
+CREATE TABLE signal_clusters (
+  id TEXT PRIMARY KEY,
+  cycle_id TEXT NOT NULL,
+  theme TEXT NOT NULL,
+  signal_count INTEGER NOT NULL,
+  significance_score REAL,
+  selected INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE posts (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    candidate_id TEXT REFERENCES candidates(id),
-    thesis_id TEXT REFERENCES theses(id),
-    text TEXT NOT NULL,
-    rationale TEXT NOT NULL,
-    format TEXT,
-    confidence REAL,
-    status TEXT NOT NULL DEFAULT 'PUBLISHED',
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    published_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  cycle_id TEXT NOT NULL,
+  format TEXT NOT NULL,
+  content TEXT NOT NULL,
+  contrarian_angle TEXT,
+  incentive_insight TEXT,
+  system_loop TEXT,
+  sources_used TEXT NOT NULL,
+  quality_score REAL,
+  x_tweet_id TEXT,
+  x_thread_ids TEXT,
+  created_at TEXT NOT NULL,
+  posted_at TEXT,
+  FOREIGN KEY (agent_id) REFERENCES agent(id)
 );
 
-CREATE TABLE memories (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    memory_type TEXT NOT NULL,
-    title TEXT,
-    content TEXT NOT NULL,
-    importance REAL DEFAULT 0.5,
-    confidence REAL DEFAULT 0.5,
-    source_post_id TEXT REFERENCES posts(id),
-    source_candidate_id TEXT REFERENCES candidates(id),
-    source_thesis_id TEXT REFERENCES theses(id),
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE post_sources (
-    post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-    relevance_score REAL,
-    PRIMARY KEY (post_id, source_id)
-);
-
-CREATE TABLE publication_events (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    post_id TEXT REFERENCES posts(id),
-    event_type TEXT NOT NULL,
-    status TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE distribution_events (
-    id TEXT PRIMARY KEY,
-    post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    platform TEXT NOT NULL,
-    status TEXT NOT NULL,
-    external_id TEXT,
-    attempt_count INTEGER NOT NULL DEFAULT 0,
-    last_attempt_at TEXT,
-    published_at TEXT,
-    error_message TEXT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE runtime_state (
-    agent_id TEXT PRIMARY KEY REFERENCES agents(id),
-    state TEXT NOT NULL DEFAULT 'IDLE',
-    last_started_at TEXT,
-    last_completed_at TEXT,
-    last_successful_cycle_at TEXT,
-    last_failed_cycle_at TEXT,
-    locked_until TEXT,
-    current_candidate_id TEXT REFERENCES candidates(id),
-    failure_count INTEGER NOT NULL DEFAULT 0,
-    metadata TEXT NOT NULL DEFAULT '{}',
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE skipped_cycles (
+  id TEXT PRIMARY KEY,
+  cycle_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  best_candidate_content TEXT,
+  best_candidate_score REAL,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE runtime_cycles (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    completed_at TEXT,
-    status TEXT NOT NULL DEFAULT 'RUNNING',
-    candidates_discovered INTEGER NOT NULL DEFAULT 0,
-    candidates_approved INTEGER NOT NULL DEFAULT 0,
-    candidates_rejected INTEGER NOT NULL DEFAULT 0,
-    posts_published INTEGER NOT NULL DEFAULT 0,
-    error_message TEXT,
-    metadata TEXT NOT NULL DEFAULT '{}'
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  completed_at TEXT,
+  duration_ms INTEGER,
+  signals_discovered INTEGER DEFAULT 0,
+  signals_new INTEGER DEFAULT 0,
+  clusters_formed INTEGER DEFAULT 0,
+  llm_calls_made INTEGER DEFAULT 0,
+  outcome TEXT,
+  error_message TEXT,
+  day_of_week TEXT,
+  format_preference TEXT,
+  format_used TEXT
 );
 
 CREATE TABLE llm_usage (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL REFERENCES agents(id),
-    cycle_id TEXT REFERENCES runtime_cycles(id),
-    operation TEXT NOT NULL,
-    provider TEXT NOT NULL,
-    model TEXT NOT NULL,
-    input_tokens INTEGER,
-    output_tokens INTEGER,
-    estimated_cost REAL,
-    latency_ms INTEGER,
-    success INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    metadata TEXT NOT NULL DEFAULT '{}'
+  id TEXT PRIMARY KEY,
+  cycle_id TEXT NOT NULL,
+  model TEXT NOT NULL,
+  prompt_purpose TEXT NOT NULL,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  success INTEGER DEFAULT 1,
+  error_message TEXT,
+  created_at TEXT NOT NULL
 );
 
-CREATE INDEX idx_posts_feed ON posts(agent_id, status, created_at DESC);
-CREATE INDEX idx_candidates_runtime ON candidates(agent_id, status, expires_at);
-CREATE INDEX idx_posts_agent_created ON posts(agent_id, created_at DESC);
-CREATE INDEX idx_posts_thesis ON posts(thesis_id);
-CREATE INDEX idx_posts_candidate ON posts(candidate_id);
-CREATE INDEX idx_memories_agent_type ON memories(agent_id, memory_type);
-CREATE INDEX idx_memories_importance ON memories(agent_id, importance DESC);
-CREATE INDEX idx_memories_updated_at ON memories(agent_id, updated_at DESC);
+CREATE TABLE knowledge_graph (
+  id TEXT PRIMARY KEY,
+  entity TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  last_mentioned_at TEXT,
+  mention_count INTEGER DEFAULT 1,
+  sentiment TEXT,
+  notes TEXT
+);
+
+CREATE INDEX idx_signals_source ON signals(source);
+CREATE INDEX idx_signals_discovered ON signals(discovered_at);
+CREATE INDEX idx_signals_url ON signals(url);
+CREATE INDEX idx_posts_created ON posts(created_at);
+CREATE INDEX idx_posts_agent ON posts(agent_id);
+CREATE INDEX idx_cycles_agent ON runtime_cycles(agent_id);
+CREATE INDEX idx_knowledge_entity ON knowledge_graph(entity);

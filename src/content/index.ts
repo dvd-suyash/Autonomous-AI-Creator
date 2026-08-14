@@ -1,101 +1,91 @@
-// src/content/index.ts
-import { LLMProvider } from '../llm'
+import { AnalysisResult } from '../analysis';
+import { CloudflareAILLMProvider } from '../llm';
 
-export async function generateContent(db: D1Database, agent: { id: string, name: string, domain: string }, candidate: any, llm: LLMProvider, cycleId: string) {
-  try {
-    // 1. Get Sources
-    const { results: sources } = await db.prepare(
-      "SELECT s.id, s.url, s.title FROM sources s JOIN candidate_sources cs ON s.id = cs.source_id WHERE cs.candidate_id = ?"
-    ).bind(candidate.id).all<{ id: string, url: string, title: string }>();
+export type PostFormat = 'punchy' | 'thread' | 'data_drop' | 'question' | 'recap';
 
-    // 1.5. Get Memories for Continuity
-    const { results: recentMemories } = await db.prepare(
-      "SELECT content FROM memories WHERE agent_id = ? ORDER BY created_at DESC LIMIT 5"
-    ).bind(agent.id).all<{ content: string }>();
+export interface GeneratedPost {
+  format: PostFormat;
+  content: string | string[]; // string for single tweet, string[] for thread
+}
 
-    const memoryContext = recentMemories.length > 0 
-      ? `\nPREVIOUSLY PUBLISHED THESES (Do not repeat these concepts):\n${recentMemories.map(m => `- ${m.content}`).join('\n')}`
-      : '';
+export function determineFormatPreference(dayOfWeek: number): PostFormat {
+  const preferences: Record<number, PostFormat> = {
+    1: 'punchy',     // Mon
+    2: 'thread',     // Tue
+    3: 'data_drop',  // Wed
+    4: 'thread',     // Thu
+    5: 'question',   // Fri
+    0: 'recap',      // Sun
+  };
+  return preferences[dayOfWeek] || 'punchy';
+}
 
-    // 2. Generate Content with Persona Injection
-    const prompt = `CONTENT_GENERATION:
-You are ${agent.name}, an expert writing about "${agent.domain}".
-Write an insightful, thesis-driven post about the following topic. Do not just summarize.
-Focus on second-order consequences. Your tone should reflect your expertise.${memoryContext}
+export async function generateContent(analysis: AnalysisResult, preferredFormat: PostFormat, llm: CloudflareAILLMProvider): Promise<GeneratedPost | null> {
+  llm.setPurpose('craft');
+  
+  const personaContext = `You are "Suyash Dwivedi", an intellectual provocateur exposing hidden systems and incentives.
+Your Voice: Confident, precise, never preachy. State facts and let the reader draw conclusions.
+Rules:
+- NO corporate language ("excited to share", "game-changer", "paradigm shift").
+- NO "I think" or "In my opinion".
+- NO excessive emojis (max 1 per tweet).
+- NO hashtags.
+- NO starting with "Thread 🧵".
+`;
 
-Topic: ${candidate.title}
+  const inputContext = `
+Thesis: ${analysis.synthesis}
+Contrarian Data: ${analysis.contrarianAngle}
+Incentive: ${analysis.incentiveInsight}
+System Loop: ${analysis.systemLoop}
+`;
 
-CRITICAL: Your 'rationale' MUST explicitly answer:
-1) Why this topic was selected
-2) Why it is relevant right now
-3) The source(s) of information`;
+  let prompt = '';
+  let schema: any = null;
 
-    const postData = await llm.generateStructured<{ text: string, rationale: string }>(
-      prompt,
-      { text: "string", rationale: "string" },
-      'reasoning'
-    );
+  // We ask the LLM to choose the format, but strongly suggest the preferred one.
+  const formatPrompt = `
+${personaContext}
+${inputContext}
 
-    // Content Validation
-    if (!postData || !postData.text || postData.text.length < 10) {
-        console.warn(`LLM failed validation for candidate ${candidate.id}. Aborting generation.`);
-        return false;
-    }
+Based on this material, what is the most powerful way to present it on X (Twitter)?
+Options:
+- "punchy": A single tweet reframing a belief in one sharp sentence (<280 chars).
+- "thread": A multi-tweet breakdown (5-8 tweets) taking the reader through the full Contrarian -> Incentive -> Systems chain.
+- "data_drop": A single tweet built around a surprising statistic with one sentence of context (<280 chars).
+- "question": A single provocative question with no answer (<280 chars).
 
-    const now = new Date().toISOString();
-    const postId = crypto.randomUUID();
+Today's preferred format is "${preferredFormat}". You should probably use this unless the material absolutely demands otherwise.
 
-    // 3. Persist Post
-    await db.prepare(
-      "INSERT INTO posts (id, agent_id, candidate_id, text, rationale, status, created_at, published_at) VALUES (?, ?, ?, ?, ?, 'PUBLISHED', ?, ?)"
-    ).bind(postId, agent.id, candidate.id, postData.text, postData.rationale, now, now).run();
+Return JSON with:
+- "chosen_format": string (one of the options above)
+- "content": string OR array of strings (if thread). Each string MUST be under 270 characters.
+`;
 
-    // 4. Link Sources
-    for (const source of sources) {
-      await db.prepare(
-        "INSERT INTO post_sources (post_id, source_id, relevance_score) VALUES (?, ?, 1.0)"
-      ).bind(postId, source.id).run();
-    }
+  schema = {
+    chosen_format: "string",
+    content: ["string"]
+  };
 
-    // 3. Update candidate status
-    await db.prepare("UPDATE candidates SET status = 'PUBLISHED' WHERE id = ?").bind(candidate.id).run();
+  const result = await llm.generateStructured<{ chosen_format: string, content: string[] }>(formatPrompt, schema);
+  
+  if (!result || !result.content || result.content.length === 0) return null;
 
-    // 4. Memory Extraction (Durable Knowledge)
-    console.log(`Extracting memory for candidate ${candidate.id}`);
-    const memoryData = await llm.generateStructured<{ title: string, statement: string, confidence: number, is_new_thesis: boolean }>(
-      `MEMORY_EXTRACTION: Based on the post you just wrote, extract the core durable knowledge or thesis. Post: ${postData.text}`,
-      { title: "string", statement: "string", confidence: "number (0.0-1.0)", is_new_thesis: "boolean" },
-      'reasoning'
-    );
-
-    if (memoryData) {
-      const memoryId = crypto.randomUUID();
-      let thesisId = null;
-      
-      if (memoryData.is_new_thesis) {
-        thesisId = crypto.randomUUID();
-        await db.prepare(
-          "INSERT INTO theses (id, agent_id, title, statement, confidence, first_observed_at, last_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        ).bind(thesisId, agent.id, memoryData.title, memoryData.statement, memoryData.confidence, now, now).run();
-        
-        // Link post to the new thesis
-        await db.prepare("UPDATE posts SET thesis_id = ? WHERE id = ?").bind(thesisId, postId).run();
-      }
-
-      await db.prepare(
-        "INSERT INTO memories (id, agent_id, memory_type, title, content, importance, source_post_id, source_candidate_id, source_thesis_id, created_at, updated_at) VALUES (?, ?, 'OBSERVATION', ?, ?, ?, ?, ?, ?, ?, ?)"
-      ).bind(memoryId, agent.id, memoryData.title, memoryData.statement, memoryData.confidence, postId, candidate.id, thesisId, now, now).run();
-    }
-
-    // 6. Record Publication Event
-    const eventId = crypto.randomUUID();
-    await db.prepare(
-      "INSERT INTO publication_events (id, agent_id, post_id, event_type, status, created_at) VALUES (?, ?, ?, 'PUBLISHED', 'SUCCESS', ?)"
-    ).bind(eventId, agent.id, postId, now).run();
-
-    return true;
-  } catch (error) {
-    console.error(`Error generating content for candidate ${candidate.id}:`, error);
-    return false;
+  let format = (result.chosen_format as PostFormat) || preferredFormat;
+  if (!['punchy', 'thread', 'data_drop', 'question', 'recap'].includes(format)) {
+    format = 'punchy';
   }
+
+  // Validate lengths
+  const validatedContent = result.content.map(tweet => {
+    if (tweet.length > 280) {
+      return tweet.substring(0, 275) + '...';
+    }
+    return tweet;
+  });
+
+  return {
+    format,
+    content: format === 'thread' ? validatedContent : validatedContent[0]
+  };
 }

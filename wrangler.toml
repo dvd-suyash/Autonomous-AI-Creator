@@ -11,5 +11,5 @@ database_id = "e88ff245-727a-41cf-bfee-84380916c570"
 binding = "AI"
 
 [triggers]
-crons = ["*/20 * * * *"]
+crons = ["0 16 * * 1-5,7"]
 

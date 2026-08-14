@@ -1,1 +1,5 @@
-node_modules/\n.wrangler/\ndist/\n
+node_modules/
+.wrangler/
+dist/
+src/**/*.js
+*.js
