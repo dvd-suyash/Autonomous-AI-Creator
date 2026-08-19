@@ -1,87 +1,68 @@
 <div align="center">
-  <h1>🤖 Second Order: Autonomous AI Creator</h1>
-  <p>An intelligent, autonomous AI agent that independently discovers topics, exercises editorial judgment, and publishes commentary in a distinct persona—all without human intervention.</p>
+  <h1>TANGENT // CORE</h1>
+  <p>An entirely autonomous, self-governing AI agent that schedules itself, researches the global social graph independently via Tavily, and injects structural entropy directly into Threads.</p>
 </div>
 
 <br />
 
 ## 🌟 Overview
 
-**Second Order** is an autonomous AI agent built for the **Autonomous AI Creator Hackathon**. Unlike traditional LLMs that wait for a human prompt, this system operates continuously on its own schedule. It crawls live tech sources, scores potential topics against a defined editorial constitution, and publishes high-quality insights while building a persistent memory of its actions.
-
-### 🎭 Meet the Persona: *The Eco Visionary*
-For this submission, the agent assumes the role of an **Eco Visionary** focused on **Green Tech & Sustainability**. It actively seeks out news on sustainable infrastructure, renewable energy, and eco-friendly technology, providing sharp, forward-thinking commentary.
+**Tangent** is a radical re-architecture of the Autonomous AI Creator project. Instead of waiting for human prompts, it operates on a completely independent schedule deployed directly to the Cloudflare Edge. It is designed to act as **The Incentive Architect & Contrarian Signal**, scanning the internet for deep, structural insights and publishing contrarian psychology observations to the world.
 
 ---
 
-## ✨ Key Features
+## ✨ Architecture Updates & Key Features
 
-- 🧠 **True Autonomy**: Operates on a precise Cloudflare Cron schedule (`*/20 * * * *`). No human prompts required after the initial `POST /api/agent/init`.
-- 🔍 **Multi-Source Discovery**: Independently aggregates and sanitizes live data streams from HackerNews, Dev.to, and GitHub Trending.
-- ⚖️ **Rigorous Editorial Judgment**: Does not just blindly post. Uses an LLM to strictly evaluate candidates, discarding those that are redundant, low-quality, or off-topic, and provides a transparent rationale for every rejection.
-- 💭 **Long-term Memory**: Persists its worldview and past publications in a SQLite database (Cloudflare D1) to ensure continuity and avoid repeating itself.
-- 🛡️ **Fail-Safe & Budget-Aware**: Designed for production. Features strict token limits, JSON-schema fallback mechanisms, and robust error handling to guarantee continuous uptime without runaway API costs.
-- 📊 **Real-time Dashboard**: Features a beautiful, interactive Glassmorphism UI that visualizes the agent's live heartbeat, publication feed, and editorial graveyard in real-time.
+- 🧠 **True Autonomy**: Operates on a precise Cloudflare Cron schedule (`0 16 * * 1-5,7` -> 16:00 UTC). No human triggers required after initialization.
+- 🕷️ **Neural Discovery**: Integrates **Tavily Search API** to dynamically query live data, grounding its hallucinations in actual reality.
+- 🧵 **Threads API Integration**: Directly posts its generated insights to Meta's Threads network via a unified graph API integration.
+- ⚖️ **Rigorous Editorial Judgment**: Scores potential topics against an internal constitution. Discards low-quality or off-topic data and logs the explicit rationale in the telemetry stream.
+- 💭 **Long-term Memory**: Persists its worldview and past publications in Cloudflare D1 (Serverless SQLite) to avoid repeating itself.
+- 🩸 **Brutalist 3D Telemetry UI**: A completely rebuilt, high-performance landing page. Features a brutalist aesthetic, raw 1:1 hardware scroll scrubbing tied perfectly to video playback via GSAP `ScrollTrigger`, and a live Alpine.js telemetry modal to inspect the actual execution logs of the agent's brain.
 
 ---
 
-## 🏗️ Architecture Stack
+## 🏗️ Technical Stack
 
 - **Edge Runtime**: Cloudflare Workers (TypeScript)
 - **Database**: Cloudflare D1 (Serverless SQLite)
 - **Intelligence**: Cloudflare Workers AI (`@cf/meta/llama-3-8b-instruct`)
-- **Frontend UI**: Vanilla HTML/CSS/JS (Served from the Edge)
+- **Neural Search**: Tavily API
+- **Social Graph**: Meta Threads API
+- **Frontend UI**: Vanilla HTML/TailwindCSS, GSAP (ScrollTrigger), Alpine.js, Brutalist Typography.
 - **Scheduling**: Cloudflare Cron Triggers
 
 ---
 
 ## 🚦 How It Works (The State Machine)
 
-1. **Wake**: Cron trigger fires the `runAutonomousCycle()` orchestrator.
-2. **Discover**: Scrapes and parses the latest articles from multiple tech feeds.
-3. **Filter**: Compares new articles against its persistent memory of previously published posts to avoid duplicates.
-4. **Evaluate**: The LLM reviews the top candidates and assigns an editorial score, producing a 3-step reasoning rationale for each.
-5. **Decide**: The highest-scoring candidate is chosen for publication. Lower-scoring or irrelevant candidates are explicitly rejected and logged in the Graveyard.
-6. **Publish**: The AI synthesizes the winning topic into an engaging, persona-driven post and commits it to memory.
+1. **Wake**: Cron trigger fires the `runAutonomousCycle()` orchestrator at 16:00 UTC.
+2. **Discover (Gather)**: Queries live data via Tavily to form raw signals.
+3. **Filter & Cluster**: Compares new signals against its persistent memory, forming dense thematic clusters.
+4. **Analyze**: The LLM reviews the top clusters, assigning an editorial score and synthesizing a contrarian angle and incentive insight.
+5. **Decide**: The highest-scoring candidate is chosen. Lower-scoring candidates are rejected (SKIPPED).
+6. **Publish**: The AI crafts a Thread and broadcasts it globally, updating the D1 telemetry logs for the frontend modal.
 
 ---
 
-## 🚀 API Endpoints (For Evaluators)
+## 🚀 Deployment & Configuration
 
-### 1. Initialize Agent
-Initializes the system and sets the persona. *(To be called exactly once)*
+Ensure you have your secrets configured in the Cloudflare Worker before production deployment:
+
 ```bash
-curl -X POST https://second-order.suyashdwivedi.workers.dev/api/agent/init \
-  -H "Content-Type: application/json" \
-  -d '{"persona": {"name": "Eco Visionary", "domain": "Green Tech & Sustainability"}}'
-```
+# Add Tavily Neural Search Key
+npx wrangler secret put TAVILY_API_KEY
 
-### 2. Retrieve Feed
-Fetches the agent's published posts and rationale.
-```bash
-curl -X GET https://second-order.suyashdwivedi.workers.dev/api/agent/feed?agentId=<YOUR_AGENT_ID>
-```
+# Add Threads API Tokens
+npx wrangler secret put THREADS_ACCESS_TOKEN
+npx wrangler secret put THREADS_USER_ID
 
----
-
-## 📂 Project Structure
-
-```text
-├── src/
-│   ├── index.ts               # Main Hono router and Cron entrypoint
-│   ├── discovery/             # Data aggregation (HN, Dev.to, GitHub)
-│   ├── editorial/             # LLM evaluation & selection logic
-│   ├── content/               # Generation of final posts
-│   ├── runtime/               # State machine & scheduler orchestration
-│   ├── llm/                   # Cloudflare AI integration & parsing fallbacks
-│   └── ui/                    # Beautiful real-time dashboard UI
-├── docs/                      # Extensive design documentation & decisions
-├── schema.sql                 # D1 Database Schema
-└── wrangler.toml              # Cloudflare configuration
+# Deploy to Edge
+npx wrangler deploy
 ```
 
 ---
 
 <div align="center">
-  <i>Built for the Autonomous AI Creator Hackathon</i>
+  <i>Built for the Autonomous AI Creator Hackathon. Deployed to the Edge.</i>
 </div>
