@@ -96,7 +96,7 @@ export async function deduplicateSignals(db: D1Database, newSignals: Signal[]): 
 
 export async function aggregateDailySignals(db: D1Database, llm: CloudflareAILLMProvider, env: any): Promise<Signal[]> {
     const today = new Date().getDay();
-    if (today === 6) return []; // Skip Saturday
+    // if (today === 6) return []; // Skip Saturday (Temporarily disabled for demo)
     
     if (!env || !env.TAVILY_API_KEY) {
       console.error('TAVILY_API_KEY is missing from environment.');

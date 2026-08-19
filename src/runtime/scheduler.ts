@@ -2,7 +2,7 @@ import { CloudflareAILLMProvider } from '../llm';
 import { aggregateDailySignals } from '../discovery';
 import { clusterSignals, analyzeCluster } from '../analysis';
 import { generateContent, determineFormatPreference } from '../content';
-import { XClient } from '../x';
+import { ThreadsClient } from '../threads';
 
 export async function runAutonomousCycle(db: D1Database, agentId: string, ai: any, env?: any) {
   const cycleId = crypto.randomUUID();
@@ -94,7 +94,8 @@ export async function runAutonomousCycle(db: D1Database, agentId: string, ai: an
     }
 
     // 4. CRAFT
-    const generated = await generateContent(analysis, preferredFormat, llm);
+    const { results: recentPosts } = await db.prepare("SELECT content FROM posts ORDER BY created_at DESC LIMIT 3").all();
+    const generated = await generateContent(analysis, preferredFormat, llm, recentPosts);
     if (!generated) {
       outcome = 'SKIPPED';
       errorMsg = 'Content generation failed.';
@@ -109,32 +110,31 @@ export async function runAutonomousCycle(db: D1Database, agentId: string, ai: an
     let xThreadIds = null;
     let postedAt = null;
 
-    if (env && env.X_API_KEY) {
-      const xClient = new XClient({
-        apiKey: env.X_API_KEY,
-        apiSecret: env.X_API_SECRET,
-        accessToken: env.X_ACCESS_TOKEN,
-        accessTokenSecret: env.X_ACCESS_TOKEN_SECRET
+    if (env && env.THREADS_ACCESS_TOKEN && env.THREADS_USER_ID) {
+      const threadsClient = new ThreadsClient({
+        accessToken: env.THREADS_ACCESS_TOKEN,
+        userId: env.THREADS_USER_ID
       });
 
       try {
+        let textToPost = '';
         if (generated.format === 'thread' && Array.isArray(generated.content)) {
-          const ids = await xClient.postThread(generated.content);
-          if (ids.length > 0) {
-            xTweetId = ids[0];
-            xThreadIds = JSON.stringify(ids);
-            postedAt = new Date().toISOString();
-          }
+          textToPost = generated.content.join('\n\n---\n\n');
         } else if (typeof generated.content === 'string') {
-          const id = await xClient.postTweet(generated.content);
+          textToPost = generated.content;
+        } else if (Array.isArray(generated.content)) {
+          textToPost = generated.content[0];
+        }
+
+        if (textToPost) {
+          const id = await threadsClient.postThread(textToPost);
           if (id) {
-            xTweetId = id;
+            xTweetId = id; // Re-using DB column x_tweet_id for Threads ID
             postedAt = new Date().toISOString();
           }
         }
-      } catch (xErr) {
-        console.error('Failed to post to X:', xErr);
-        // We still save the post to the database even if X API fails
+      } catch (err) {
+        console.error('Failed to post to Threads:', err);
       }
     }
 
