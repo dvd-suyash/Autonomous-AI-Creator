@@ -160,6 +160,12 @@ app.get('/', async (c) => {
 </head>
 <body x-data="{ modalOpen: false }" :class="modalOpen ? 'overflow-hidden' : ''">
 
+    <!-- SYSTEM BOOT PRELOADER -->
+    <div id="boot-screen" class="fixed inset-0 z-[9999] bg-bg flex flex-col items-center justify-center font-mono text-accent text-xs tracking-[0.3em]">
+        <div class="mb-6 text-4xl font-display text-ink font-bold opacity-80" style="transform: scale(0.98);">TANGENT</div>
+        <div>ESTABLISHING_NEURAL_LINK<span class="animate-pulse">_</span></div>
+    </div>
+
     <div class="grid-overlay"></div>
     <div class="ticker-tape">
         <div class="ticker-content">
@@ -361,6 +367,24 @@ app.get('/', async (c) => {
         const video = document.getElementById('bg-video');
         video.src = 'https://files.catbox.moe/8oayq8.mp4';
         video.load();
+
+        // Hide preloader when video is ready (Disney Principle: Fast exit ease-in, subtle anticipation scale)
+        const hidePreloader = () => {
+            const bootScreen = document.getElementById('boot-screen');
+            if(bootScreen && bootScreen.style.display !== 'none') {
+                gsap.to(bootScreen, { 
+                    opacity: 0, 
+                    scale: 1.02,
+                    duration: 0.25, 
+                    ease: "power3.in", 
+                    onComplete: () => { bootScreen.style.display = 'none'; } 
+                });
+            }
+        };
+
+        video.addEventListener('canplaythrough', hidePreloader, { once: true });
+        video.addEventListener('loadeddata', hidePreloader, { once: true });
+        setTimeout(hidePreloader, 3500); // Fallback timeout if network is extremely slow
 
         // 100% Bulletproof GSAP Init: We don't wait for the video to load.
         // We know the video is ~10s long, so we build the timeline immediately.
