@@ -127,6 +127,10 @@ export async function runAutonomousCycle(db: D1Database, agentId: string, ai: an
         }
 
         if (textToPost) {
+          // STRICT FAILSAFE: Threads API rejects text > 500 characters.
+          if (textToPost.length > 490) {
+            textToPost = textToPost.substring(0, 487) + '...';
+          }
           const id = await threadsClient.postThread(textToPost);
           if (id) {
             xTweetId = id; // Re-using DB column x_tweet_id for Threads ID

@@ -1,0 +1,19 @@
+
+ ⛅️ wrangler 4.120.0 (update available 4.124.0)
+───────────────────────────────────────────────
+Support for remote bindings in `wrangler dev` is now available as a replacement for `wrangler dev --remote`. Try it out now by running `wrangler dev` with the `remote` option enabled on your resources and let us know how it goes!
+This gives you access to remote resources in development while retaining all the usual benefits of local dev: fast iteration speed, breakpoint debugging, and more.
+
+Refer to https://developers.cloudflare.com/workers/development-testing/#remote-bindings for more information.
+Your Worker has access to the following bindings:
+Binding                       Resource         
+env.DB (second-order-db)      D1 Database      
+env.AI                        AI               
+
+⎔ Starting remote preview...
+Total Upload: 108.98 KiB / gzip: 28.08 KiB
+[wrangler:info] Ready on http://localhost:8787
+[wrangler:info] GET /__scheduled 200 OK (4454ms)
+Cron triggered at 2026-08-19T11:33:07.815Z
+[Curiosity] Generated query: "Impact of EU's Digital Markets Act on interoperability requirements for dominant messaging platforms and potential effects on network effects-driven market concentration."
+waitUntil() tasks did not complete within the allowed time after invocation end and have been cancelled. See: https://developers.cloudflare.com/workers/runtime-apis/context/#waituntil

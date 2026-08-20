@@ -74,9 +74,9 @@ This directive MUST dictate how you open and structure the post. Do not use your
 
 Based on this material, what is the most powerful way to present it on X (Twitter)?
 Options:
-- "punchy": A single tweet reframing a belief in one sharp sentence (<280 chars).
-- "thread": A multi-tweet breakdown (5-8 tweets) taking the reader through the full Contrarian -> Incentive -> Systems chain.
-- "data_drop": A single tweet built around a surprising statistic with one sentence of context (<280 chars).
+- "punchy": A single post reframing a belief in one sharp sentence (<280 chars).
+- "thread": A short breakdown (2-3 items max) taking the reader through the Contrarian -> Incentive -> Systems chain. TOTAL combined text MUST be under 450 characters!
+- "data_drop": A single post built around a surprising statistic with one sentence of context (<280 chars).
 - "question": A single provocative question with no answer (<280 chars).
 
 Today's preferred format is "${preferredFormat}". You should probably use this unless the material absolutely demands otherwise.
