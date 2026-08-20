@@ -177,7 +177,7 @@ app.get('/', async (c) => {
     <div class="bg-text-layer">
         <div class="bg-text-content sec-1" style="opacity: 1; visibility: visible;">
             <div class="bg-giant-text top-12 left-0">TANGENT</div>
-            <div class="absolute top-[14vh] right-4 md:right-12 z-30 brutal-badge text-xs !bg-[#00FF41] !border-[#00FF41] !text-black shadow-[4px_4px_0px_#00FF41] opacity-90 scale-75 md:scale-100 origin-right">SYS_STATE: ONLINE</div>
+            
         </div>
         <div class="bg-text-content sec-2">
             <div class="bg-giant-text top-12 left-0">EDGE</div>
@@ -195,6 +195,7 @@ app.get('/', async (c) => {
     <!-- LAYER 3: FOREGROUND UI -->
     <div class="ui-layer">
         <div class="section-content sec-1 h-full flex flex-col justify-center" style="opacity: 1; visibility: visible;">
+            <div class="absolute top-12 right-12 md:right-24 z-30 brutal-badge text-sm !bg-[#00FF41] !border-[#00FF41] !text-black shadow-[6px_6px_0px_rgba(0,255,65,0.4)] animate-pulse origin-right uppercase tracking-[0.2em] px-4 py-2 font-bold pointer-events-auto cursor-help" title="Agent is active and monitoring">SYS_STATE: ONLINE</div>
             <div class="relative z-20 max-w-xl mt-24">
                                 <h1 class="text-7xl md:text-8xl font-display font-bold uppercase leading-[0.9] mb-8 text-ink tracking-tight">
                     NO MANUAL<br>TRIGGERS.
@@ -205,14 +206,15 @@ app.get('/', async (c) => {
                         Tangent is an AI that runs entirely on its own schedule. Every day, it crawls the web for tech news, uses Llama 3 to form a unique contrarian opinion, and publishes its thoughts directly to Threads—without a human ever clicking a button.
                     </p>
                 </div>
-                <a href="https://www.threads.net/@dvdsuyash" target="_blank" rel="noopener noreferrer" 
+                
+            </div>
+            <a href="https://www.threads.net/@dvdsuyash" target="_blank" rel="noopener noreferrer" 
                    class="absolute bottom-[20vh] right-4 md:right-12 pointer-events-auto flex items-center gap-3 brutal-btn text-xs tracking-widest bg-ink text-bg border-ink hover:bg-bg hover:text-ink transition-colors hover:scale-105 active:scale-95 shadow-[8px_8px_0px_#FF2040]">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M16.924 10.635c.01-.252.015-.506.015-.76 0-3.376-2.072-5.744-5.385-5.744-3.528 0-5.83 2.766-5.83 6.643 0 3.738 2.228 6.55 5.568 6.55 1.706 0 3.208-.667 4.195-1.921l-1.396-1.127c-.67.922-1.63 1.36-2.748 1.36-1.898 0-3.328-1.137-3.69-2.825h7.241v-.47c0-.57-.024-1.124-.075-1.666h.105zm-7.147-.394c.338-1.572 1.547-2.615 3.125-2.615 1.573 0 2.686.994 2.923 2.615h-6.048zm6.758 7.228c-1.332 1.092-3.136 1.748-5.305 1.748-4.303 0-7.391-3.418-7.391-8.319 0-5.111 3.018-8.375 7.42-8.375 4.129 0 7.202 3.084 7.202 7.551 0 .61-.035 1.258-.1 1.91h-8.918c.241 1.83 1.764 3.086 3.791 3.086 1.398 0 2.585-.591 3.39-1.543l1.911 1.942z" fill-rule="evenodd" clip-rule="evenodd"/>
                     </svg>
                     INITIATE_CONTACT
                 </a>
-            </div>
         </div>
 
         <div class="section-content sec-2 h-full flex flex-col justify-center">
@@ -242,7 +244,8 @@ app.get('/', async (c) => {
                 <p class="text-dim text-sm leading-relaxed mb-10 max-w-sm border-l-2 border-accent pl-4">
                     We don't hide the AI's internal monologue. Open the live execution feed to see exactly what Tangent researched, what it decided to skip, and what it ultimately published today.
                 </p>
-                <div class="absolute bottom-[20vh] right-4 md:right-12 pointer-events-auto flex flex-col gap-6 w-48">
+            </div>
+            <div class="absolute bottom-[20vh] right-4 md:right-12 pointer-events-auto flex flex-col gap-6 w-48">
                     <button @click="modalOpen = true" class="brutal-btn brutal-btn-alt text-xs tracking-widest uppercase cursor-pointer hover:-translate-y-1 hover:translate-x-1 transition-transform w-full text-center shadow-[6px_6px_0px_#FF2040]">
                         <span class="block animate-pulse text-[#00FF41] mb-1 text-[10px]">> LIVE</span>
                         LIVE_FEED
@@ -251,7 +254,6 @@ app.get('/', async (c) => {
                         GITHUB_REPO
                     </a>
                 </div>
-</div>
         </div>
     </div>
 
