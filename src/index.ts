@@ -115,7 +115,7 @@ app.get('/', async (c) => {
             position: fixed; bottom: 4vw; left: -10vw; width: 120vw;
             background: #FF2040; color: #080808;
             font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;
-            padding: 0.5rem 0; z-index: 20; transform: rotate(-2deg);
+            padding: 0.5rem 0; z-index: 5; transform: rotate(-2deg);
             white-space: nowrap; overflow: hidden; pointer-events: none;
         }
         .ticker-content {
@@ -194,6 +194,14 @@ app.get('/', async (c) => {
 
     <!-- LAYER 3: FOREGROUND UI -->
     <div class="ui-layer">
+        <a href="https://www.threads.net/@dvdsuyash" target="_blank" rel="noopener noreferrer" 
+           class="fixed bottom-[40vh] md:bottom-[35vh] right-4 md:right-12 z-50 pointer-events-auto flex items-center gap-3 brutal-btn text-xs tracking-widest bg-ink text-bg border-ink hover:bg-bg hover:text-ink transition-colors hover:scale-105 active:scale-95 shadow-[8px_8px_0px_#FF2040]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4.5 8.4"></path>
+            </svg>
+            INITIATE_CONTACT
+        </a>
         <div class="section-content sec-1 h-full flex flex-col justify-center" style="opacity: 1; visibility: visible;">
             <div class="absolute top-12 right-12 md:right-24 z-30 brutal-badge text-sm !bg-[#00FF41] !border-[#00FF41] !text-black shadow-[6px_6px_0px_rgba(0,255,65,0.4)] animate-pulse origin-right uppercase tracking-[0.2em] px-4 py-2 font-bold pointer-events-auto cursor-help" title="Agent is active and monitoring">SYS_STATE: ONLINE</div>
             <div class="relative z-20 max-w-xl mt-24">
@@ -208,13 +216,7 @@ app.get('/', async (c) => {
                 </div>
                 
             </div>
-            <a href="https://www.threads.net/@dvdsuyash" target="_blank" rel="noopener noreferrer" 
-                   class="absolute bottom-[20vh] right-4 md:right-12 pointer-events-auto flex items-center gap-3 brutal-btn text-xs tracking-widest bg-ink text-bg border-ink hover:bg-bg hover:text-ink transition-colors hover:scale-105 active:scale-95 shadow-[8px_8px_0px_#FF2040]">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M16.924 10.635c.01-.252.015-.506.015-.76 0-3.376-2.072-5.744-5.385-5.744-3.528 0-5.83 2.766-5.83 6.643 0 3.738 2.228 6.55 5.568 6.55 1.706 0 3.208-.667 4.195-1.921l-1.396-1.127c-.67.922-1.63 1.36-2.748 1.36-1.898 0-3.328-1.137-3.69-2.825h7.241v-.47c0-.57-.024-1.124-.075-1.666h.105zm-7.147-.394c.338-1.572 1.547-2.615 3.125-2.615 1.573 0 2.686.994 2.923 2.615h-6.048zm6.758 7.228c-1.332 1.092-3.136 1.748-5.305 1.748-4.303 0-7.391-3.418-7.391-8.319 0-5.111 3.018-8.375 7.42-8.375 4.129 0 7.202 3.084 7.202 7.551 0 .61-.035 1.258-.1 1.91h-8.918c.241 1.83 1.764 3.086 3.791 3.086 1.398 0 2.585-.591 3.39-1.543l1.911 1.942z" fill-rule="evenodd" clip-rule="evenodd"/>
-                    </svg>
-                    INITIATE_CONTACT
-                </a>
+            
         </div>
 
         <div class="section-content sec-2 h-full flex flex-col justify-center">
