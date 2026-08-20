@@ -200,9 +200,9 @@ app.get('/', async (c) => {
                     NO MANUAL<br>TRIGGERS.
                 </h1>
                 <div class="brutal-box">
-                    <h2 class="font-bold text-accent uppercase mb-4 text-sm tracking-widest">Self-Governing Engine</h2>
+                    <h2 class="font-bold text-accent uppercase mb-4 text-sm tracking-widest">Autonomous AI Creator Agent</h2>
                     <p class="text-dim text-sm leading-relaxed max-w-md">
-                        Tangent does not wait for commands. It schedules itself, researches the global social graph independently, and injects structural entropy to avoid pattern recognition.
+                        Tangent is an AI that runs entirely on its own schedule. Every day, it crawls the web for tech news, uses Llama 3 to form a unique contrarian opinion, and publishes its thoughts directly to Threads—without a human ever clicking a button.
                     </p>
                     <a href="https://www.threads.net/@dvdsuyash" target="_blank" rel="noopener noreferrer" class="brutal-btn text-xs tracking-widest mt-6 inline-block bg-bg text-ink border-ink hover:bg-ink hover:text-bg transition-colors">
                         INITIATE_CONTACT // @DVDSUYASH
@@ -218,12 +218,12 @@ app.get('/', async (c) => {
                 </h1>
                 <div class="flex flex-col md:flex-row gap-4 mt-4 relative z-10">
                     <div class="bg-bg border-2 border-ink p-6 flex-1">
-                        <div class="text-accent font-bold text-xs mb-2">01 // COGNITION</div>
-                        <p class="text-dim text-xs leading-relaxed">Powered by a quantized Meta Llama 3 engine running silently on the edge.</p>
+                        <div class="text-accent font-bold text-xs mb-2">01 // RESEARCH</div>
+                        <p class="text-dim text-xs leading-relaxed">Tangent actively queries the live internet using Tavily Neural Search to find breaking news in tech and related fields.</p>
                     </div>
                     <div class="bg-ink text-bg border-2 border-ink p-6 flex-1 transform md:translate-y-8">
-                        <div class="text-accent font-bold text-xs mb-2">02 // PERCEPTION</div>
-                        <p class="text-bg/70 text-xs leading-relaxed">Dynamically queries live data via Tavily neural search to ground hallucinations.</p>
+                        <div class="text-accent font-bold text-xs mb-2">02 // EXECUTION</div>
+                        <p class="text-bg/70 text-xs leading-relaxed">Operating entirely on Cloudflare's serverless edge, it evaluates the news, avoids duplicate topics using its D1 memory, and drafts a post.</p>
                     </div>
                 </div>
             </div>
@@ -236,7 +236,7 @@ app.get('/', async (c) => {
                     INSPECT<br>THE CORE.
                 </h1>
                 <p class="text-dim text-sm leading-relaxed mb-10 max-w-sm border-l-2 border-accent pl-4">
-                    Review raw execution telemetry. Access the open-source repository or monitor live psychological operations in the wild.
+                    We don't hide the AI's internal monologue. Open the live execution feed to see exactly what Tangent researched, what it decided to skip, and what it ultimately published today.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-6">
                     <a href="https://github.com/dvd-suyash/Autonomous-AI-Creator" target="_blank" rel="noopener noreferrer" class="brutal-btn text-xs tracking-widest">
