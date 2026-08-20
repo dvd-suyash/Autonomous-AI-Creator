@@ -490,7 +490,7 @@ app.post('/internal/runtime/wake', async (c) => {
        return c.json({ error: 'Agent not initialized in database.' }, 400);
     }
 
-    c.executionCtx.waitUntil(runAutonomousCycle(c.env.DB, agent.id, c.env.AI, c.env));
+    await runAutonomousCycle(c.env.DB, agent.id, c.env.AI, c.env);
     
     return c.json({ status: 'ok', agentWoken: agent.id });
   } catch (error) {

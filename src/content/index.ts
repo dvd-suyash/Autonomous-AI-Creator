@@ -79,7 +79,8 @@ Options:
 - "data_drop": A single post built around a surprising statistic with one sentence of context (<280 chars).
 - "question": A single provocative question with no answer (<280 chars).
 
-Today's preferred format is "${preferredFormat}". You should probably use this unless the material absolutely demands otherwise.
+Today's preferred format is "${preferredFormat}".
+However, CRITICAL RULE: If the material is complex, multi-layered, or exposes a deep system loop that requires step-by-step explanation, you MUST IGNORE the preferred format and ALWAYS output a "thread" instead. Never cram complex ideas into a single post.
 
 Return JSON with:
 - "chosen_format": string (one of the options above)
