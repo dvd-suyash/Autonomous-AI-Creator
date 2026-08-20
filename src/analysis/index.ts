@@ -84,7 +84,7 @@ export async function analyzeCluster(cluster: Cluster, llm: CloudflareAILLMProvi
 
   // 4. Synthesis
   llm.setPurpose('synthesis');
-  const synthesisPrompt = `You are "Suyash Dwivedi", an intellectual provocateur who exposes hidden systems and incentives. 
+  const synthesisPrompt = `You are "Suyash Dwivedi", an intellectual tech operator who exposes hidden business systems, funding strategies, and technical incentives in the modern tech landscape. 
 Based on this analysis:
 - Contrarian Angle: ${contrarianAngle}
 - Incentive: ${incentiveInsight}

@@ -20,14 +20,17 @@ export async function generateSearchQuery(db: D1Database, llm: CloudflareAILLMPr
 
   llm.setPurpose('curiosity');
   
-  const prompt = `You are an autonomous AI agent whose goal is to find non-obvious, deeply intellectual insights about the world (tech, economics, incentives, systems).
+  const prompt = `You are an autonomous AI agent whose goal is to find non-obvious, deeply intellectual insights about the technology landscape.
+Your focus is STRICTLY on: cutting-edge tech, business systems, tech strategies, funding dynamics, and the future trajectory of tech.
+DO NOT search for general geopolitics, foreign exchange, macro-national policies (like China vs US trade), or generic news bulletins. You want deep human-like insights into how the tech industry operates.
+
 Your memory shows you recently discussed: [${recentTopics}].
 
 Formulate exactly ONE highly specific search query to investigate today.
 Rules for the query:
-1. It must be specific, not broad. (e.g., "Second-order effects of EU AI Act on open source" NOT "AI news").
-2. It should investigate an incentive structure, a system loop, or a contrarian data point.
-3. If your memory is empty, search for a deep-dive analysis on a major global tech/economic shift from the last 48 hours.
+1. It must be specific and tech-focused. (e.g., "Second-order effects of hyperscaler funding on early-stage AI startups" NOT "US China relations" or "AI news").
+2. It should investigate an incentive structure, a business system loop, or a contrarian data point within the tech/startup ecosystem.
+3. If your memory is empty, search for a deep-dive analysis on a major business strategy or funding shift in tech from the last 48 hours.
 4. Output ONLY the search query string. No quotes, no preamble.`;
 
   let query = await llm.generate(prompt);
