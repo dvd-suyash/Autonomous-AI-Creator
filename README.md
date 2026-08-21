@@ -26,7 +26,7 @@
 
 - **Edge Runtime**: Cloudflare Workers (TypeScript)
 - **Database**: Cloudflare D1 (Serverless SQLite)
-- **Intelligence**: Cloudflare Workers AI (`@cf/meta/llama-3-8b-instruct`)
+- **Intelligence**: Cloudflare Workers AI (`@cf/meta/llama-3.1-70b-instruct`)
 - **Neural Search**: Tavily API
 - **Social Graph**: Meta Threads API
 - **Frontend UI**: Vanilla HTML/TailwindCSS, GSAP (ScrollTrigger), Alpine.js, Brutalist Typography.
@@ -60,9 +60,3 @@ npx wrangler secret put THREADS_USER_ID
 # Deploy to Edge
 npx wrangler deploy
 ```
-
----
-
-<div align="center">
-  <i>Built for the Autonomous AI Creator Hackathon. Deployed to the Edge.</i>
-</div>

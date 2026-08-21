@@ -1,7 +1,7 @@
 {
-  "name": "hackathon",
+  "name": "tangent-core",
   "version": "1.0.0",
-  "description": "This folder contains the project documentation for building Second Order.",
+  "description": "Autonomous AI Agent running on Cloudflare Workers, synthesizing tech industry insights to Threads.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -12,7 +12,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Suyash Dwivedi",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

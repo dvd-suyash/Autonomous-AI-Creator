@@ -1,5 +1,8 @@
 node_modules/
 .wrangler/
 dist/
-src/**/*.js
-*.js
+bin/
+.env
+.DS_Store
+*.log
+tail_logs.json
